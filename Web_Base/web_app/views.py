@@ -33,8 +33,13 @@ def login_view(request):
         if user is not None:
             if not user.is_deleted:
                 login(request, user)
+                request.session['username'] = user.username
+                request.session['user_id'] = user.id
+                response = redirect('home')
+                response.set_cookie('login_status', 'logged_in',
+                                    max_age=3600, httponly=True, samesite='Lax')
                 messages.success(request, "Login successful.")
-                return redirect('home')
+                return response
             else:
                 messages.error(request, "Your account has been deactivated.")
                 return redirect('login')
@@ -145,13 +150,17 @@ def register_view(request):
 @login_required(login_url='login')
 @never_cache
 def home_view(request):
-    return render(request, 'home.html')
+    username = request.session.get('username','Guest')
+    return render(request, 'home.html',{'username':username})
 
 
 def logout_view(request):
     logout(request)
+    request.session.flush()
+    response = redirect('login')
+    response.delete_cookie('login_status')
     messages.success(request, "You have been logged out successfully.")
-    return redirect('login')
+    return response
 
 
 def soft_delete_user(request, user_id):
@@ -172,7 +181,7 @@ def is_admin(user):
 def admin_login_view(request):
     if request.user.is_authenticated and request.user.is_superuser:
         return redirect('admin_dashboard')
-    
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
