@@ -72,6 +72,8 @@ User = get_user_model()
 @csrf_protect
 @never_cache
 def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         email = request.POST.get('email', '').strip()
@@ -150,8 +152,8 @@ def register_view(request):
 @login_required(login_url='login')
 @never_cache
 def home_view(request):
-    username = request.session.get('username','Guest')
-    return render(request, 'home.html',{'username':username})
+    username = request.session.get('username', 'Guest')
+    return render(request, 'home.html', {'username': username})
 
 
 def logout_view(request):
